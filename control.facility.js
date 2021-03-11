@@ -1,4 +1,9 @@
-﻿var Sana = Sana || {};
+﻿//start oez 22022021
+var sgItemCategoryCRP = 'QR Products';
+//sgItemCategoryCRP = 'Subscriptions';
+//end oez 22012021
+
+var Sana = Sana || {};
 Sana.Facility = (function () {
     //Create methods for find Parking.
     var findParking = function (self) {
@@ -103,6 +108,15 @@ Sana.Facility = (function () {
                 Facility.fields.itemId = $trClass.find('input[name=itemId]:first').val();
                 Facility.fields.permitTypeCode = $trClass.find('input[name=permitTypeCode]:first').val();
                 Facility.fields.meterRental = ($trClass.find('input[name=MeterRentalChk]:first').val().toLowerCase() === 'true');
+
+                //start oez 17022021
+                Facility.fields.itemCategory = $trClass.find('input[name=itemCategory]:first').val();
+                if (Facility.fields.itemCategory == sgItemCategoryCRP)
+                {
+                    Facility.fields.meterRental = true;
+                }
+                //end oez 17022021
+
                 Facility.fields.ePermit = ($trClass.find('input[name=permitType]:first').val().toLowerCase() === 'true');
                 Facility.fields.waiting = ($trClass.find('input[name=waiting]:first').val().toLowerCase() === 'true');
                 Facility._itemSelected.removeAttr('style');
@@ -733,24 +747,84 @@ Sana.Facility = (function () {
                 } else {
                     $datef2.css('display', 'none');
                     $datef.removeAttr('style');
-                    this._startDate.datepicker({
-                        changeMonth: true,
-                        changeYear: true,
-                        minDate: 0,
-                        onSelect: function () {
-                            Sana.UI.LoadingIndicator.show();
-                            var startDate = $(this).datepicker('getDate');
-                            Facility._endDate.datepicker('option', 'minDate', startDate);
-                            $this.itemSelectByProductAndDate();
-                        }
-                    });
-                    this._endDate.datepicker({
-                        minDate: 0,
-                        constrainInput: true,
-                        onSelect: function () {
-                            $this.itemSelectByProductAndDate();
-                        }
-                    });
+
+                    if (this.fields.itemCategory == sgItemCategoryCRP) //oez 22022021
+                    {
+                        this._startDate.datepicker({
+                            changeMonth: true,
+                            changeYear: true,
+
+                            //start oez 22022021
+                            minDate: calcMinDate(),
+                            //end oez 22022021
+
+                            onSelect: function () {
+                                Sana.UI.LoadingIndicator.show();
+                                var startDate = $(this).datepicker('getDate');
+                                Facility._endDate.datepicker('option', 'minDate', startDate);
+                                $this.itemSelectByProductAndDate();
+                            }
+                        });
+
+                        this._endDate.datepicker({
+                            changeMonth: true,
+                            changeYear: true,
+
+                            //start oez 22022021
+                            minDate: calcMinDate(),
+                            //end oez 22022021
+
+                            constrainInput: true,
+                            onSelect: function () {
+                                $this.itemSelectByProductAndDate();
+                            }
+                        });
+                    }
+                    else {
+                        this._startDate.datepicker({
+                            changeMonth: true,
+                            changeYear: true,
+                            minDate: 0,
+                            onSelect: function () {
+                                Sana.UI.LoadingIndicator.show();
+                                var startDate = $(this).datepicker('getDate');
+                                Facility._endDate.datepicker('option', 'minDate', startDate);
+                                $this.itemSelectByProductAndDate();
+                            }
+                        });
+
+                        this._endDate.datepicker({
+                            changeMonth: true,
+                            changeYear: true,
+                            minDate: 0,
+                            constrainInput: true,
+                            onSelect: function () {
+                                $this.itemSelectByProductAndDate();
+                            }
+                        });
+                    };
+
+                    //start oez 22022021
+                    function calcMinDate() {
+                        today = new Date();
+                        dayIndex = today.getDay();
+                        nToSum = 0;
+
+                        //sunday, monday, tuesday
+                        if (dayIndex == 0 || dayIndex == 1 || dayIndex == 2)
+                            nToSum = 3;
+
+                        //wednesday, thursday, friday
+                        if (dayIndex == 3 || dayIndex == 4 || dayIndex == 5)
+                            nToSum = 5;
+
+                        //saturday
+                        if (dayIndex == 6)
+                            nToSum = 4;
+
+                        return nToSum;
+                    }
+                    //end oez 22022021
                 }
                 if (initial) {
                     this._btnAddToCart = this._this.find('button[name=btnAddCart]');
@@ -916,6 +990,11 @@ Sana.Facility = (function () {
                     $data.push(
                         { name: 'facilityCode', value: this.fields.facilityCode },
                         { name: 'itemId', value: this.fields.itemId },
+
+                        //start oez 17022021
+                        { name: 'itemCategory', value: this.fields.itemCategory },
+                        //end oez 17022021
+
                         { name: 'startDate', value: this._startDate.val() },
                         { name: 'endDate', value: this._endDate.val() },
                         { name: 'waiting', value: this._this.find('#WLGUID').val() },
@@ -1079,6 +1158,14 @@ Sana.Facility = (function () {
             validateFields: function ($data) {
                 var $data1 = this.fieldsText($data);
                 var $data2 = this.fieldsFile($data1);
+
+                //start oez 22022021
+                if (Facility.fields.itemCategory == sgItemCategoryCRP)
+                {
+                    $data2 = this.fieldsItemCategoryCRP($data2);
+                }
+                //end oez 22022021
+
                 return $data2;
             },
             //select all fields with mark of required for type text
@@ -1094,8 +1181,9 @@ Sana.Facility = (function () {
                             }
                         } else {
                             Sana.Message.Hiden($control, '#validation');
-                            if ($item.name !== 'plates')
+                            if ($item.name !== 'plates') {
                                 $data.append($item.name, $item.value);
+                            }
                         }
                     }
                 });
@@ -1119,6 +1207,43 @@ Sana.Facility = (function () {
                 });
                 return $data;
             },
+
+            //start oez 22022021
+            fieldsItemCategoryCRP: function ($data) {
+                var diff = 0;
+                var date1 = moment(this._startDate.datepicker('getDate'));
+                var date2 = moment(this._endDate.datepicker('getDate'));
+
+                diff = date2.diff(date1, 'days');
+
+                var nQtyDays = 0;
+                nQtyDays = this._quantity.val();
+                
+                var $fields = this._itemSelected.find('input[type=number]');
+
+                $.each($fields, function ($i, $item) {
+                    var $control = $($item).parents('.control');
+
+                    if ($.trim($item.value) === '') {
+                        if ($($item).attr('required')) {
+                            Sana.Message.Error($control, '#validation', 'This field is required.');
+                            $this._boolAddToCart = true;
+                        }
+                    }
+                    else {
+                        Sana.Message.Hiden($control, '#validation');
+                        $data.append($item.name, $item.value);
+                    }
+                });
+
+                if (diff < 2 && nQtyDays < 3) {
+                    throw Sana.Message.Alert("Three days or three spaces is the minimun amount allowable for purchasing this product. \nFor more information please contact the MPA customer service.", "The purchase process could not be completed.");
+                }
+
+                return $data;
+            },
+            //end oez 22022021
+
             //Create JSON with fields
             createFields: function () {
                 var $lst = [];
@@ -1142,6 +1267,11 @@ Sana.Facility = (function () {
                 });
                 var $facilityProducts = {
                     ItemId: this.fields.itemId,
+
+                    //start oez 17022021
+                    itemCategory: this.fields.itemCategory,
+                    //end oez 17022021
+
                     Quantity: this._quantity.val(),
                     FacilityCode: this.fields.facilityCode,
                     StartDate: this._startDate.val(),
